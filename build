@@ -1,0 +1,23 @@
+#! /bin/bash
+
+set -eu
+
+# create cluster
+if [ -z "${SKIP_CLUSTER_CREATE:-}" ]; then
+  k3d cluster create retry-repro
+fi
+
+docker build -t ghcr.io/dadjeibaah/post-ingester:latest .
+docker build -f Dockerfile-sc  -t ghcr.io/dadjeibaah/slow_cooker:latest .
+
+k3d image import ghcr.io/dadjeibaah/post-ingester:latest -c retry-repro
+k3d image import ghcr.io/dadjeibaah/slow_cooker:latest -c retry-repro
+
+if [ -z "${SKIP_LINKERD_INSTALL:-}" ]; then
+  curl -sL https://run.linkerd.io/install-edge | sh
+  linkerd install | kubectl apply -f -
+  linkerd viz install | kubectl apply -f -
+  linkerd check
+fi
+
+kubectl apply -f repro.yaml

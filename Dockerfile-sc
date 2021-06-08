@@ -1,0 +1,9 @@
+FROM alpine
+RUN apk update
+WORKDIR /app
+RUN wget \
+"https://github.com/BuoyantIO/slow_cooker/releases/download/1.2.0/slow_cooker_linux_amd64"
+RUN mv slow_cooker_linux_amd64 slow_cooker
+RUN chmod +x slow_cooker
+COPY payload payload
+ENTRYPOINT ["/bin/sh", "-c", "cat payload | /app/slow_cooker -method=POST -qps=20 -concurrency=5 -data=@- http://post-ingester.retry:8090/api/post"]
